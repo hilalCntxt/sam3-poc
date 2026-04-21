@@ -1,19 +1,12 @@
 paths:
+  # Directory containing images from your annotated dataset split.
   input_dir: "./data/images"
-  output_dir: "./outputs/run-001"
+  # Pre-label outputs to review/merge before SAM-3 fine-tuning.
+  output_dir: "./outputs/sam3-finetune-prelabels"
 
 backend:
-  name: "roboflow"
-  roboflow:
-    api_url: "https://serverless.roboflow.com"
-    api_key_env: "ROBOFLOW_API_KEY"
-    workspace_name: "sinan-poc"
-    workflow_id: "general-segmentation-api"
-    use_cache: true
-    per_label_requests: false
-    prompt_parameter_name: "classes"
-    predictions_path: "predictions"
-    class_name_field: "class"
+  # Direct local SAM-3 inference (no Roboflow workflow call).
+  name: "sam3"
 
 labels:
   - id: 1
