@@ -1,0 +1,52 @@
+paths:
+  input_dir: "./data/images"
+  output_dir: "./outputs/run-001"
+
+backend:
+  # Use "sam3" for local SAM-3 inference, or "roboflow" for hosted workflow inference.
+  name: "roboflow"
+  roboflow:
+    api_url: "https://serverless.roboflow.com"
+    # Prefer env var to avoid leaking API key in files.
+    api_key_env: "ROBOFLOW_API_KEY"
+    workspace_name: "your-workspace"
+    workflow_id: "general-segmentation-api"
+    use_cache: true
+    # false => run one workflow call per image and map predicted class names to labels.
+    # true  => run workflow once per configured label (optionally passing label prompt param).
+    per_label_requests: false
+    # Input parameter name expected by your workflow for class names/prompts.
+    prompt_parameter_name: "classes"
+    # Where predictions are located in workflow output.
+    predictions_path: "predictions"
+    # Prediction field used to match labels when per_label_requests=false.
+    class_name_field: "class"
+
+labels:
+  - id: 1
+    name: person
+    prompt: "person"
+  - id: 2
+    name: car
+    prompt: "car"
+  - id: 3
+    name: helmet
+    prompt: "safety helmet"
+
+inference:
+  score_threshold: 0.40
+  mask_threshold: 0.50
+  min_area: 100
+  max_masks_per_label: 20
+  polygon_approx_epsilon: 2.0
+
+output:
+  save_binary_masks: true
+  save_visualizations: true
+
+image_extensions:
+  - ".jpg"
+  - ".jpeg"
+  - ".png"
+  - ".bmp"
+  - ".webp"

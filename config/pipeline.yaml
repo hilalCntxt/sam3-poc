@@ -1,0 +1,78 @@
+paths:
+  input_dir: "./data/images"
+  output_dir: "./outputs/run-001"
+
+backend:
+  name: "roboflow"
+  roboflow:
+    api_url: "https://serverless.roboflow.com"
+    api_key_env: "ROBOFLOW_API_KEY"
+    workspace_name: "sinan-poc"
+    workflow_id: "general-segmentation-api"
+    use_cache: true
+    per_label_requests: false
+    prompt_parameter_name: "classes"
+    predictions_path: "predictions"
+    class_name_field: "class"
+
+labels:
+  - id: 1
+    name: bottom_bun
+    prompt: "bottom_bun"
+  - id: 2
+    name: cheese_slice
+    prompt: "cheese_slice"
+  - id: 3
+    name: patty
+    prompt: "patty"
+  - id: 4
+    name: tomato_slice
+    prompt: "tomato_slice"
+  - id: 5
+    name: lettuce_leaf
+    prompt: "lettuce_leaf"
+  - id: 6
+    name: top_bun
+    prompt: "top_bun"
+  - id: 7
+    name: lettuce_container
+    prompt: "lettuce_container"
+  - id: 8
+    name: tomato_container
+    prompt: "tomato_container"
+  - id: 9
+    name: cheese_rack
+    prompt: "cheese_rack"
+  - id: 10
+    name: patty_rack
+    prompt: "patty_rack"
+  - id: 11
+    name: burger_box
+    prompt: "burger_box"
+  - id: 12
+    name: onion_container
+    prompt: "onion_container"
+  - id: 13
+    name: bun_container
+    prompt: "bun_container"
+  - id: 14
+    name: onion_slice
+    prompt: "onion_slice"
+
+inference:
+  score_threshold: 0.40
+  mask_threshold: 0.50
+  min_area: 100
+  max_masks_per_label: 20
+  polygon_approx_epsilon: 2.0
+
+output:
+  save_binary_masks: true
+  save_visualizations: true
+
+image_extensions:
+  - ".jpg"
+  - ".jpeg"
+  - ".png"
+  - ".bmp"
+  - ".webp"
