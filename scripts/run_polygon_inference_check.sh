@@ -6,6 +6,7 @@
 #   SAM3_REPO=~/sam3 SAM3_POC=~/sam3-poc CKPT=... IMG_DIR=... OUT_DIR=... SCORE=0.001 MAX_IMG=50
 #   DEBUG=1          -> pass --debug (prints why boxes/scores are empty)
 #   SIGMOID=1        -> pass --apply-sigmoid-to-scores (if raw scores are logits)
+#   PROC_THR=0.05    -> Sam3Processor internal filter (NOT 0.5; FT models need low values)
 # Default IMG_DIR is **test**; train often returns zero boxes for this fine-tuned ckpt.
 
 set -euo pipefail
@@ -24,7 +25,8 @@ LABELS="${LABELS:-bottom_bun,cheese_slice,patty,tomato_slice,lettuce_leaf,top_bu
 
 DEBUG="${DEBUG:-0}"
 SIGMOID="${SIGMOID:-0}"
-extra_py=()
+PROC_THR="${PROC_THR:-0.05}"
+extra_py=(--processor-confidence-threshold "$PROC_THR")
 [[ "$DEBUG" == "1" ]] && extra_py+=(--debug)
 [[ "$SIGMOID" == "1" ]] && extra_py+=(--apply-sigmoid-to-scores)
 
@@ -34,7 +36,7 @@ echo "OUT_DIR=$OUT_DIR"
 echo "CKPT=$CKPT"
 echo "IMG_DIR=$IMG_DIR"
 echo "SCORE_THRESHOLD=$SCORE"
-echo "DEBUG=$DEBUG SIGMOID=$SIGMOID"
+echo "DEBUG=$DEBUG SIGMOID=$SIGMOID PROC_THR=$PROC_THR"
 
 if [[ "$IMG_DIR" == *"/train" ]] || [[ "$IMG_DIR" == *"/train/" ]]; then
   echo "WARNING: IMG_DIR points at TRAIN (${IMG_DIR})."

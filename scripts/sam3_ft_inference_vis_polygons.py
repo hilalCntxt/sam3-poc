@@ -15,6 +15,10 @@ Flow:
 If the run returns **no masks** (e.g. fine-tune without segmentation head), use
 ``--rectangle-if-no-mask`` to draw the **bounding box as a 4-point polygon** so you still
 get a closed polygon on the image.
+
+``Sam3Processor`` defaults to ``confidence_threshold=0.5`` and drops almost all
+fine-tuned scores before ``boxes`` are returned. Use ``--processor-confidence-threshold``
+(we default to ``0.05``) so low-but-valid detections survive.
 """
 
 from __future__ import annotations
@@ -229,6 +233,15 @@ def main() -> None:
         action="store_true",
         help="If model returns logits, map scores with sigmoid before thresholding/sorting",
     )
+    parser.add_argument(
+        "--processor-confidence-threshold",
+        type=float,
+        default=0.05,
+        help=(
+            "Sam3Processor keeps only predictions with score > this value before returning "
+            "boxes (SAM-3 default is 0.5; fine-tuned heads often need 0.01–0.1)."
+        ),
+    )
     args = parser.parse_args()
 
     from sam3.model.sam3_image_processor import Sam3Processor
@@ -242,7 +255,14 @@ def main() -> None:
     print("load_state_dict missing:", len(missing), "unexpected:", len(unexpected))
 
     model = model.to("cuda").eval()
-    processor = Sam3Processor(model)
+    processor = Sam3Processor(
+        model, confidence_threshold=args.processor_confidence_threshold
+    )
+    print(
+        "Sam3Processor confidence_threshold:",
+        args.processor_confidence_threshold,
+        flush=True,
+    )
 
     label_list = [s.strip() for s in args.labels.split(",") if s.strip()]
     exts = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
