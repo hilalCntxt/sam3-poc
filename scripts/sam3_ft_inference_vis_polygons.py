@@ -189,7 +189,7 @@ def main() -> None:
     parser.add_argument(
         "--save-json",
         action="store_true",
-        help="Write one <stem>_polygons.json per image with polygon lists + scores",
+        help="Write one <stem>_polygons.json per image (always; empty [] if no hits)",
     )
     args = parser.parse_args()
 
@@ -232,9 +232,10 @@ def main() -> None:
         out_path = args.out_dir / path.name
         img.save(out_path)
         print("wrote", out_path)
-        if args.save_json and sidecar:
+        if args.save_json:
             jp = out_path.with_name(out_path.stem + "_polygons.json")
             jp.write_text(json.dumps(sidecar, indent=2), encoding="utf-8")
+            print("  json:", jp, "count:", len(sidecar))
 
 
 if __name__ == "__main__":
