@@ -84,7 +84,13 @@ def _mask_index_to_binary(
 
 
 def _tensor_to_numpy(t: Any) -> np.ndarray:
-    return np.array(t.detach().cpu()) if hasattr(t, "detach") else np.array(t)
+    if hasattr(t, "detach"):
+        tt = t.detach()
+        # NumPy cannot ingest torch.bfloat16 directly; cast floating tensors.
+        if hasattr(tt, "is_floating_point") and tt.is_floating_point():
+            tt = tt.float()
+        return tt.cpu().numpy()
+    return np.array(t)
 
 
 def _polygons_for_instance(
