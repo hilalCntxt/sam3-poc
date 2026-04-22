@@ -2,7 +2,16 @@ __pycache__/
 *.pyc
 .DS_Store
 .venv/
+.venv-train/
 venv/
 outputs/
+data/
 *.log
 *.egg-info/
+
+# Local / generated COCO dumps (keep out of git; use outputs/ for runs)
+coco_predictions*.json
+coco_predictions_polygons*.json
+
+# Hydra / SAM-3 train config generated on the box (keep template in repo; ignore local paths)
+config/sam3_train*.yaml
