@@ -4,6 +4,9 @@
 #   bash scripts/run_polygon_inference_check.sh
 # Optional env overrides:
 #   SAM3_REPO=~/sam3 SAM3_POC=~/sam3-poc CKPT=... IMG_DIR=... OUT_DIR=... SCORE=0.001 MAX_IMG=50
+#   DEBUG=1          -> pass --debug (prints why boxes/scores are empty)
+#   SIGMOID=1        -> pass --apply-sigmoid-to-scores (if raw scores are logits)
+# Default IMG_DIR is **test**; train often returns zero boxes for this fine-tuned ckpt.
 
 set -euo pipefail
 
@@ -19,12 +22,19 @@ MAX_PER_LABEL="${MAX_PER_LABEL:-10}"
 
 LABELS="${LABELS:-bottom_bun,cheese_slice,patty,tomato_slice,lettuce_leaf,top_bun,lettuce_container,tomato_container,cheese_rack,patty_rack,burger_box,onion_container,bun_container,onion_slice}"
 
+DEBUG="${DEBUG:-0}"
+SIGMOID="${SIGMOID:-0}"
+extra_py=()
+[[ "$DEBUG" == "1" ]] && extra_py+=(--debug)
+[[ "$SIGMOID" == "1" ]] && extra_py+=(--apply-sigmoid-to-scores)
+
 echo "SAM3_REPO=$SAM3_REPO"
 echo "SAM3_POC=$SAM3_POC"
 echo "OUT_DIR=$OUT_DIR"
 echo "CKPT=$CKPT"
 echo "IMG_DIR=$IMG_DIR"
 echo "SCORE_THRESHOLD=$SCORE"
+echo "DEBUG=$DEBUG SIGMOID=$SIGMOID"
 
 test -d "$SAM3_REPO" || { echo "Missing SAM3 repo: $SAM3_REPO"; exit 1; }
 test -d "$SAM3_POC" || { echo "Missing sam3-poc: $SAM3_POC"; exit 1; }
@@ -48,7 +58,8 @@ python "$SAM3_POC/scripts/sam3_ft_inference_vis_polygons.py" \
   --max-per-label "$MAX_PER_LABEL" \
   --score-threshold "$SCORE" \
   --rectangle-if-no-mask \
-  --save-json
+  --save-json \
+  "${extra_py[@]}"
 
 echo ""
 echo "=== sample JSON (first file) ==="

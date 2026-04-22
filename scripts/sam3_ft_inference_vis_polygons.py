@@ -106,15 +106,32 @@ def _append_label_predictions(
     color: tuple[int, int, int],
     prompt_out: dict[str, Any],
     args: argparse.Namespace,
+    image_name: str = "",
 ) -> None:
     boxes = prompt_out.get("boxes")
     scores = prompt_out.get("scores")
     masks_raw = prompt_out.get("masks")
     if boxes is None or len(boxes) == 0:
+        if getattr(args, "debug", False):
+            print(
+                f"DEBUG {image_name} label={label!r}: no boxes "
+                f"(boxes is None={boxes is None})",
+                flush=True,
+            )
         return
     boxes_np = _tensor_to_numpy(boxes)
     scores_np = _tensor_to_numpy(scores)
     masks_np = _tensor_to_numpy(masks_raw) if masks_raw is not None else None
+
+    if getattr(args, "apply_sigmoid_to_scores", False):
+        scores_np = 1.0 / (1.0 + np.exp(-np.clip(scores_np, -50.0, 50.0)))
+
+    if getattr(args, "debug", False):
+        print(
+            f"DEBUG {image_name} label={label!r}: n_boxes={boxes_np.shape[0]} "
+            f"score_min={float(scores_np.min()):.4g} score_max={float(scores_np.max()):.4g}",
+            flush=True,
+        )
 
     for idx in np.argsort(-scores_np)[: args.max_per_label]:
         s = float(scores_np[idx])
@@ -160,7 +177,9 @@ def _render_image_polygons(
         for li, label in enumerate(label_list):
             prompt_out = processor.set_text_prompt(state=state_img, prompt=label)
             color = colors[li % len(colors)]
-            _append_label_predictions(draw, sidecar, label, color, prompt_out, args)
+            _append_label_predictions(
+                draw, sidecar, label, color, prompt_out, args, image_name=path.name
+            )
 
     return img, sidecar
 
@@ -190,6 +209,16 @@ def main() -> None:
         "--save-json",
         action="store_true",
         help="Write one <stem>_polygons.json per image (always; empty [] if no hits)",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Print per-label box counts and score min/max (why JSON can be [])",
+    )
+    parser.add_argument(
+        "--apply-sigmoid-to-scores",
+        action="store_true",
+        help="If model returns logits, map scores with sigmoid before thresholding/sorting",
     )
     args = parser.parse_args()
 
