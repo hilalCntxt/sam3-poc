@@ -18,7 +18,8 @@ get a closed polygon on the image.
 
 ``Sam3Processor`` defaults to ``confidence_threshold=0.5`` and drops almost all
 fine-tuned scores before ``boxes`` are returned. Use ``--processor-confidence-threshold``
-(we default to ``0.05``) so low-but-valid detections survive.
+(we default to ``0.001``). Fine-tuned heads often yield max combined scores well
+below ``0.01``; if JSON is still empty, try ``1e-4`` or ``0.0``.
 """
 
 from __future__ import annotations
@@ -236,10 +237,11 @@ def main() -> None:
     parser.add_argument(
         "--processor-confidence-threshold",
         type=float,
-        default=0.05,
+        default=0.001,
         help=(
             "Sam3Processor keeps only predictions with score > this value before returning "
-            "boxes (SAM-3 default is 0.5; fine-tuned heads often need 0.01–0.1)."
+            "boxes (SAM-3 default is 0.5). Fine-tuned runs often peak around 1e-3–1e-2; "
+            "values like 0.05 can drop every proposal."
         ),
     )
     args = parser.parse_args()
