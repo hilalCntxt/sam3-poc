@@ -111,11 +111,20 @@ def _append_label_predictions(
     boxes = prompt_out.get("boxes")
     scores = prompt_out.get("scores")
     masks_raw = prompt_out.get("masks")
-    if boxes is None or len(boxes) == 0:
+    if boxes is None:
         if getattr(args, "debug", False):
             print(
-                f"DEBUG {image_name} label={label!r}: no boxes "
-                f"(boxes is None={boxes is None})",
+                f"DEBUG {image_name} label={label!r}: boxes is None (no detection tensor)",
+                flush=True,
+            )
+        return
+    n_box = len(boxes)
+    if n_box == 0:
+        if getattr(args, "debug", False):
+            shape = getattr(boxes, "shape", "?")
+            print(
+                f"DEBUG {image_name} label={label!r}: 0 proposals "
+                f"(empty detections; tensor shape={shape})",
                 flush=True,
             )
         return

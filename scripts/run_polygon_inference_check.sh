@@ -36,6 +36,11 @@ echo "IMG_DIR=$IMG_DIR"
 echo "SCORE_THRESHOLD=$SCORE"
 echo "DEBUG=$DEBUG SIGMOID=$SIGMOID"
 
+if [[ "$IMG_DIR" == *"/train" ]] || [[ "$IMG_DIR" == *"/train/" ]]; then
+  echo "WARNING: IMG_DIR points at TRAIN (${IMG_DIR})."
+  echo "         This checkpoint often returns 0 proposals on train; use .../test or unset IMG_DIR."
+fi
+
 test -d "$SAM3_REPO" || { echo "Missing SAM3 repo: $SAM3_REPO"; exit 1; }
 test -d "$SAM3_POC" || { echo "Missing sam3-poc: $SAM3_POC"; exit 1; }
 test -f "$CKPT" || { echo "Missing checkpoint: $CKPT"; exit 1; }
