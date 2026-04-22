@@ -58,6 +58,36 @@ def _xyxy_to_polygon_flat(box: np.ndarray | list[float]) -> list[float]:
     return [x1, y1, x2, y1, x2, y2, x1, y2]
 
 
+def _bbox_iou_xyxy(a: np.ndarray, b: np.ndarray) -> float:
+    ax1, ay1, ax2, ay2 = [float(x) for x in a]
+    bx1, by1, bx2, by2 = [float(x) for x in b]
+    ix1 = max(ax1, bx1)
+    iy1 = max(ay1, by1)
+    ix2 = min(ax2, bx2)
+    iy2 = min(ay2, by2)
+    iw = max(0.0, ix2 - ix1)
+    ih = max(0.0, iy2 - iy1)
+    inter = iw * ih
+    area_a = max(0.0, ax2 - ax1) * max(0.0, ay2 - ay1)
+    area_b = max(0.0, bx2 - bx1) * max(0.0, by2 - by1)
+    union = area_a + area_b - inter
+    return inter / union if union > 0.0 else 0.0
+
+
+def _greedy_nms_indices(
+    boxes_np: np.ndarray,
+    scores_np: np.ndarray,
+    iou_threshold: float,
+) -> list[int]:
+    order = np.argsort(-scores_np)
+    keep: list[int] = []
+    for idx in order.tolist():
+        b = boxes_np[idx]
+        if all(_bbox_iou_xyxy(b, boxes_np[kept]) <= iou_threshold for kept in keep):
+            keep.append(idx)
+    return keep
+
+
 def _draw_polygons(
     draw: ImageDraw.ImageDraw,
     polygons: list[list[float]],
@@ -153,10 +183,23 @@ def _append_label_predictions(
             flush=True,
         )
 
-    for idx in np.argsort(-scores_np)[: args.max_per_label]:
+    candidate_idxs = [int(i) for i in np.nonzero(scores_np >= args.score_threshold)[0].tolist()]
+    if not candidate_idxs:
+        return
+    cand_boxes = boxes_np[candidate_idxs]
+    cand_scores = scores_np[candidate_idxs]
+    kept_local = _greedy_nms_indices(cand_boxes, cand_scores, args.nms_iou_threshold)
+    selected = [candidate_idxs[i] for i in kept_local[: args.max_per_label]]
+
+    if getattr(args, "debug", False):
+        print(
+            f"DEBUG {image_name} label={label!r}: kept_after_score={len(candidate_idxs)} "
+            f"kept_after_nms={len(selected)}",
+            flush=True,
+        )
+
+    for idx in selected:
         s = float(scores_np[idx])
-        if s < args.score_threshold:
-            continue
         polys = _polygons_for_instance(
             masks_np,
             int(idx),
@@ -212,12 +255,22 @@ def main() -> None:
     parser.add_argument(
         "--labels",
         type=str,
-        default="bottom_bun,cheese_slice,patty,tomato_slice,lettuce_leaf,top_bun",
+        default=(
+            "bottom_bun,cheese_slice,patty,tomato_slice,lettuce_leaf,top_bun,"
+            "lettuce_container,tomato_container,cheese_rack,patty_rack,"
+            "burger_box,onion_container,bun_container,onion_slice"
+        ),
         help="Comma-separated text prompts (same vocabulary as training when possible)",
     )
     parser.add_argument("--max-images", type=int, default=20)
     parser.add_argument("--max-per-label", type=int, default=3, help="Top-K instances per label by score")
     parser.add_argument("--score-threshold", type=float, default=0.05)
+    parser.add_argument(
+        "--nms-iou-threshold",
+        type=float,
+        default=0.5,
+        help="Per-label NMS IoU threshold to suppress duplicate overlapping boxes",
+    )
     parser.add_argument("--mask-threshold", type=float, default=0.5)
     parser.add_argument("--polygon-epsilon", type=float, default=2.0)
     parser.add_argument(
@@ -271,6 +324,12 @@ def main() -> None:
         args.processor_confidence_threshold,
         flush=True,
     )
+    if args.processor_confidence_threshold > 0.01:
+        print(
+            "WARNING: processor threshold is high for this FT checkpoint; "
+            "values like 0.05 can yield zero proposals.",
+            flush=True,
+        )
 
     label_list = [s.strip() for s in args.labels.split(",") if s.strip()]
     exts = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
