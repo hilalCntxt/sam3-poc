@@ -17,6 +17,9 @@ dependencies = [
   "inference-sdk",
 ]
 
+[project.optional-dependencies]
+coco = ["pycocotools>=2.0.7"]
+
 [project.scripts]
 sam3-prelabel = "sam3_prelabel.cli:main"
 
